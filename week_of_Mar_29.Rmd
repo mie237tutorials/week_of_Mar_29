@@ -1,0 +1,86 @@
+---
+title: "Week of March 29 Tutorials"
+author: "Neil Montgomery"
+date: "March 29, 2016"
+output: pdf_document
+---
+
+## Topic this week
+
+We'll do some exercises related to higher order terms and dummy variables. In some sense these exercises are also just more exercises relating to multiple regression.
+
+The following textbook exercises specifically mention higher order terms and dummy variables. Some of them deal with fake datasets with ridiculously small sample size, so don't take those ones too seriously. 12.6, 12.7, 12.8(a), 12.9, 12.10, 12.45, 12.46, 12.51, 12.59. 
+
+This tutorial will look at a one of those questions and one with simulated data.
+
+Your "lab" this week consists mainly of solving those questions using R yourself. The second assignment will come out shortly and will involve fitting multiple regression models so it will be a good idea to get some practice in.
+
+### 12.8(a)
+
+The input is an additive concentration and the output is compressive strength of an alloy.
+
+```{r, message=FALSE}
+library(rio)
+library(dplyr)
+library(ggplot2)
+alloy <- import("Ex12.08.txt")
+alloy %>% 
+  ggplot(aes(x=Concentration, y=Strength)) + geom_point()
+```
+
+The plot shows a pretty clear curve. If we try the simple linear model things might look OK but the plot of residuals versus fitted values shows the problem more clearly:
+
+```{r}
+alloy %>% 
+  lm(Strength ~ Concentration, data=.) -> alloy_lm
+summary(alloy_lm)
+alloy_lm %>% 
+  ggplot(aes(x=.fitted, y=.resid)) + geom_point()
+```
+
+So let's "update" the model by adding the square of `Concentration`. A good way of doing that in `R` is to use the `update` function. Everything is better now.
+
+```{r}
+alloy_lm2 <- update(alloy_lm, . ~ . + I(Concentration^2), data=alloy)
+summary(alloy_lm2)
+alloy_lm2 %>% 
+  ggplot(aes(x=.fitted, y=.resid)) + geom_point()
+```
+
+Consider the following:
+
+1. The change in $R^2$ from one model to the next.
+2. The meaning and interpretation of the invidual p-values in this case.
+3. Try to reconstruct the ANOVA table for the second case given SST=`r var(alloy$Strength)*(nrow(alloy) - 1)`.
+
+### Interaction simulated example
+
+The textbook lacks any good interaction questions, so I'll make one up with simulated data. Here is *The Truth*:
+
+```{r}
+# The Truth
+set.seed(1)
+x1 <- runif(100, 0, 1)
+x2 <- runif(100, 2, 3)
+y <- 0.5 + 1.2*x1 - 0.9*x2 + 0.4*x1*x2 + rnorm(100, 0, 0.3)
+intdata <- data.frame(y, x1, x2)
+```
+
+Here is the regression output for 4 models: the two one-term models, the model with both terms, and the model with both terms plus interaction. I didn't reproduce them here, but all the residual plots were beautiful and perfect.
+
+Consider the following:
+1. The $R^2$ values for all the models.
+2. The individual and overall p-values for the models.
+3. How to interpret the individual p-values for the model with the interaction.
+
+```{r}
+summary(lm(y ~ x1, data = intdata))
+summary(lm(y ~ x2, data = intdata))
+summary(lm(y ~ x1 + x2, data = intdata))
+# Notice how this model automatically includes all lower order terms
+summary(lm(y ~ x1*x2, data = intdata))
+
+```
+
+
+
